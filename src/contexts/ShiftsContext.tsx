@@ -6,7 +6,9 @@ export interface Shift {
   type: "morning" | "evening"
   sales: number
   expenses: number
-  cash: number
+  cash: number // النقدي المتوقع (المبيعات - المصروفات)
+  actualCash: number // النقدي الفعلي في الدرج
+  difference: number // الفرق بين النقدي الفعلي والمتوقع
   createdAt: string
   notes: string
 }

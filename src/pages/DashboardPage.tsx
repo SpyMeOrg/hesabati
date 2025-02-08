@@ -45,7 +45,7 @@ export function DashboardPage() {
       (acc, shift) => ({
         sales: acc.sales + (shift.sales || 0),
         expenses: acc.expenses + (shift.expenses || 0),
-        cash: acc.cash + (shift.cash || 0)
+        cash: acc.cash + (shift.actualCash || shift.sales - shift.expenses || 0)
       }),
       { sales: 0, expenses: 0, cash: 0 }
     );

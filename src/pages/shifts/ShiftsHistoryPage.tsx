@@ -191,9 +191,9 @@ export function ShiftsHistoryPage() {
   const calculateTotals = (shifts: Shift[]): Totals => {
     return shifts.reduce(
       (acc, shift) => ({
-        sales: acc.sales + shift.sales,
-        expenses: acc.expenses + shift.expenses,
-        cash: acc.cash + shift.cash,
+        sales: acc.sales + (Number(shift.sales) || 0),
+        expenses: acc.expenses + (Number(shift.expenses) || 0),
+        cash: acc.cash + (Number(shift.actualCash) || Number(shift.sales) - Number(shift.expenses) || 0)
       }),
       { sales: 0, expenses: 0, cash: 0 }
     )
@@ -298,7 +298,7 @@ export function ShiftsHistoryPage() {
     return {
       sales: acc.sales + (Number(shift.sales) || 0),
       expenses: acc.expenses + (Number(shift.expenses) || 0),
-      cash: acc.cash + ((Number(shift.sales) || 0) - (Number(shift.expenses) || 0))
+      cash: acc.cash + (Number(shift.actualCash) || Number(shift.sales) - Number(shift.expenses) || 0)
     }
   }, { sales: 0, expenses: 0, cash: 0 })
 
@@ -371,11 +371,12 @@ export function ShiftsHistoryPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[200px] text-right">التاريخ</TableHead>
-              <TableHead className="text-center">النوع</TableHead>
+              <TableHead className="w-[170px] text-right">التاريخ</TableHead>
+              <TableHead className="text-center">نوع الوردية</TableHead>
               <TableHead className="text-center">المبيعات</TableHead>
               <TableHead className="text-center">المصروفات</TableHead>
-              <TableHead className="text-center">النقدية</TableHead>
+              <TableHead className="text-center">النقدي</TableHead>
+              <TableHead className="text-center">الفرق</TableHead>
               <TableHead className="text-center w-[40px]">ملاحظات</TableHead>
               <TableHead className="text-center w-[40px]">تعديل</TableHead>
               <TableHead className="text-center w-[40px]">حذف</TableHead>
@@ -384,7 +385,7 @@ export function ShiftsHistoryPage() {
           <TableBody>
             {Object.entries(groupedShifts).length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground h-10">
+                <TableCell colSpan={9} className="text-center text-muted-foreground h-10">
                   لا توجد ورديات مسجلة
                 </TableCell>
               </TableRow>
@@ -403,6 +404,7 @@ export function ShiftsHistoryPage() {
                       <TableCell className="text-center font-bold text-lg">{yearTotals.sales.toLocaleString()} </TableCell>
                       <TableCell className="text-center font-bold text-lg">{yearTotals.expenses.toLocaleString()} </TableCell>
                       <TableCell className="text-center font-bold text-lg">{yearTotals.cash.toLocaleString()} </TableCell>
+                      <TableCell className="text-center"></TableCell>
                       <TableCell className="text-center">
                         {expandedYear === year && (
                           <div className="flex justify-center gap-2">
@@ -478,6 +480,7 @@ export function ShiftsHistoryPage() {
                             <TableCell className="text-center font-medium text-base">{monthTotals.sales.toLocaleString()} </TableCell>
                             <TableCell className="text-center font-medium text-base">{monthTotals.expenses.toLocaleString()} </TableCell>
                             <TableCell className="text-center font-medium text-base">{monthTotals.cash.toLocaleString()} </TableCell>
+                            <TableCell className="text-center"></TableCell>
                             <TableCell className="text-center">
                               {expandedMonth === monthKey && (
                                 <div className="flex justify-center gap-2">
@@ -511,7 +514,7 @@ export function ShiftsHistoryPage() {
                                       className="w-8 h-8 text-red-600 hover:text-red-700 hover:bg-red-50"
                                       onClick={async (e) => {
                                         e.stopPropagation()
-                                        if (window.confirm(`هل أنت متأكد من حذف شهر ${getArabicMonth(monthKey.split('-')[1])}؟`)) {
+                                        if (window.confirm(`هل أنت متأكد من حذف شهر ${getArabicMonth(monthKey)}؟`)) {
                                           try {
                                             const shifts = Object.values(monthData.days)
                                               .flatMap(day => day.shifts);
@@ -552,6 +555,7 @@ export function ShiftsHistoryPage() {
                                   <TableCell className="text-center">{dayTotals.sales.toLocaleString()} </TableCell>
                                   <TableCell className="text-center">{dayTotals.expenses.toLocaleString()} </TableCell>
                                   <TableCell className="text-center">{dayTotals.cash.toLocaleString()} </TableCell>
+                                  <TableCell className="text-center"></TableCell>
                                   <TableCell className="text-center">
                                     {expandedDay === dayKey && (
                                       <div className="flex justify-center gap-2">
@@ -616,7 +620,22 @@ export function ShiftsHistoryPage() {
                                     </TableCell>
                                     <TableCell className="text-center">{shift.sales.toLocaleString()} </TableCell>
                                     <TableCell className="text-center">{shift.expenses.toLocaleString()} </TableCell>
-                                    <TableCell className="text-center">{shift.cash.toLocaleString()} </TableCell>
+                                    <TableCell className="text-center">
+                                      {shift.actualCash === (shift.sales - shift.expenses) 
+                                        ? (shift.sales - shift.expenses).toLocaleString()
+                                        : shift.actualCash.toLocaleString()}
+                                    </TableCell>
+                                    <TableCell className="text-center">
+                                      {shift.actualCash !== (shift.sales - shift.expenses) ? (
+                                        <div className={cn(
+                                          shift.difference > 0 ? "text-green-600" : "text-red-600"
+                                        )}>
+                                          {shift.difference > 0
+                                            ? `زيادة : ${Math.round(shift.difference).toLocaleString()}`
+                                            : `عجز: ${Math.round(Math.abs(shift.difference)).toLocaleString()}`}
+                                        </div>
+                                      ) : null}
+                                    </TableCell>
                                     <TableCell className="text-center">
                                       {shift.notes && shift.notes.trim() !== '' && (
                                         <Button

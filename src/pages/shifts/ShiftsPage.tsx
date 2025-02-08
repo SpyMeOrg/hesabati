@@ -36,7 +36,7 @@ export function ShiftsPage() {
     return {
       sales: acc.sales + (Number(shift.sales) || 0),
       expenses: acc.expenses + (Number(shift.expenses) || 0),
-      cash: acc.cash + ((Number(shift.sales) || 0) - (Number(shift.expenses) || 0))
+      cash: acc.cash + (Number(shift.actualCash) || Number(shift.sales) - Number(shift.expenses) || 0)
     }
   }, { sales: 0, expenses: 0, cash: 0 })
 
@@ -45,9 +45,19 @@ export function ShiftsPage() {
   const [shiftType, setShiftType] = useState<string>()
   const [sales, setSales] = useState("")
   const [expenses, setExpenses] = useState("")
+  const [actualCash, setActualCash] = useState("")
+  const [difference, setDifference] = useState(0)
   const [notes, setNotes] = useState("")
   const [isFormSubmitted, setIsFormSubmitted] = useState(false)
   const [isExistingShift, setIsExistingShift] = useState(false)
+
+  // حساب الفرق في النقدي عند تغيير المبيعات أو المصروفات أو النقدي الفعلي
+  useEffect(() => {
+    const expectedCash = (Number(sales) || 0) - (Number(expenses) || 0)
+    // إذا لم يتم إدخال نقدي الدرج، نعتبر أنه مساوي للنقدي المتوقع
+    const actualCashNum = actualCash ? Number(actualCash) : expectedCash
+    setDifference(actualCash ? actualCashNum - expectedCash : 0)
+  }, [sales, expenses, actualCash])
 
   // التحقق من وجود وردية عند تغيير التاريخ أو نوع الوردية
   useEffect(() => {
@@ -98,12 +108,17 @@ export function ShiftsPage() {
     // التحقق من القيم وتحويلها إلى أرقام
     const salesNum = parseFloat(sales || "0")
     const expensesNum = parseFloat(expenses || "0")
+    const expectedCash = salesNum - expensesNum
+    
+    // إذا لم يتم إدخال نقدي الدرج، نستخدم النقدي المتوقع
+    const actualCashNum = actualCash ? parseFloat(actualCash) : expectedCash
+    const differenceAmount = actualCash ? actualCashNum - expectedCash : 0
 
-    if (isNaN(salesNum) || isNaN(expensesNum)) {
+    if (isNaN(salesNum) || isNaN(expensesNum) || (actualCash && isNaN(actualCashNum))) {
       toast({
         variant: "destructive",
         title: "خطأ",
-        description: "برجاء إدخال أرقام صحيحة للمبيعات والمصروفات",
+        description: "برجاء إدخال أرقام صحيحة",
         duration: 2000,
       })
       return
@@ -122,7 +137,9 @@ export function ShiftsPage() {
         type: shiftType as "morning" | "evening",
         sales: salesNum,
         expenses: expensesNum,
-        cash: salesNum - expensesNum,
+        cash: expectedCash,
+        actualCash: actualCashNum,
+        difference: differenceAmount,
         notes: notes || "",
       })
 
@@ -238,6 +255,29 @@ export function ShiftsPage() {
                 className="bg-muted"
               />
             </div>
+          </div>
+
+          {/* حقل النقدي الفعلي */}
+          <div className="space-y-2">
+            <Label>نقدي الدرج</Label>
+            <Input
+              type="number"
+              step="0.01"
+              value={actualCash}
+              onChange={(e) => setActualCash(e.target.value)}
+              placeholder="أدخل نقدي الدرج"
+              className="text-left"
+              dir="ltr"
+            />
+            {actualCash && Number(actualCash) !== ((Number(sales) || 0) - (Number(expenses) || 0)) ? (
+              <div className={cn(
+                "text-sm mt-1",
+                difference > 0 ? "text-green-600" : "text-red-600"
+              )}>
+                {difference > 0 ? `زيادة : ${Math.round(difference).toLocaleString()}` : 
+                 `عجز: ${Math.round(Math.abs(difference)).toLocaleString()}`}
+              </div>
+            ) : null}
           </div>
 
           {/* حقل الملاحظات */}
