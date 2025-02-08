@@ -17,6 +17,7 @@ interface ShiftsContextType {
   deleteShift: (id: string) => void
   updateShift: (shift: Shift) => void
   clearAllShifts: () => void
+  checkShiftExists: (date: string, type: "morning" | "evening") => boolean
 }
 
 const ShiftsContext = createContext<ShiftsContextType | null>(null)
@@ -95,8 +96,21 @@ export function ShiftsProvider({ children }: { children: React.ReactNode }) {
     setShifts([])
   }
 
+  const checkShiftExists = (date: string, type: "morning" | "evening") => {
+    return shifts.some(
+      shift => shift.date === date && shift.type === type
+    )
+  }
+
   return (
-    <ShiftsContext.Provider value={{ shifts, addShift, deleteShift, updateShift, clearAllShifts }}>
+    <ShiftsContext.Provider value={{ 
+      shifts, 
+      addShift, 
+      deleteShift, 
+      updateShift, 
+      clearAllShifts,
+      checkShiftExists 
+    }}>
       {children}
     </ShiftsContext.Provider>
   )

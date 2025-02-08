@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
@@ -29,7 +29,7 @@ import { CanModify } from "@/components/ui/can-modify"
 export function ShiftsPage() {
   const navigate = useNavigate()
   const { toast } = useToast()
-  const { addShift, shifts } = useShifts()
+  const { addShift, shifts, checkShiftExists } = useShifts()
   
   // حساب إجماليات الورديات
   const totals = shifts.reduce((acc, shift) => {
@@ -47,6 +47,29 @@ export function ShiftsPage() {
   const [expenses, setExpenses] = useState("")
   const [notes, setNotes] = useState("")
   const [isFormSubmitted, setIsFormSubmitted] = useState(false)
+  const [isExistingShift, setIsExistingShift] = useState(false)
+
+  // التحقق من وجود وردية عند تغيير التاريخ أو نوع الوردية
+  useEffect(() => {
+    if (date && shiftType) {
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      const formattedDate = `${year}-${month}-${day}`
+
+      const exists = checkShiftExists(formattedDate, shiftType as "morning" | "evening")
+      setIsExistingShift(exists)
+
+      if (exists) {
+        toast({
+          variant: "default",
+          title: "⚠️ تنبيه",
+          description: "يوجد وردية مسجلة بالفعل في هذا اليوم ونفس النوع",
+          duration: 4000,
+        })
+      }
+    }
+  }, [date, shiftType, toast, checkShiftExists])
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -241,7 +264,13 @@ export function ShiftsPage() {
                 إلغاء
               </Button>
             </CanModify>
-            <Button type="submit">حفظ</Button>
+            <Button 
+              type="submit" 
+              disabled={isExistingShift}
+              className={isExistingShift ? "opacity-50 cursor-not-allowed" : ""}
+            >
+              {isExistingShift ? "الوردية موجودة بالفعل" : "حفظ"}
+            </Button>
           </div>
         </form>
       </Card>
