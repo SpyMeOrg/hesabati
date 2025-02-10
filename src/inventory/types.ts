@@ -251,3 +251,18 @@ export interface StockTake {
  * نموذج إضافة جرد جديد
  */
 export type NewStockTake = Omit<StockTake, 'id' | 'createdAt' | 'updatedAt'>
+
+/**
+ * نموذج حركة المنتج
+ */
+export type ProductMovement = {
+  id: string
+  productId: string
+  type: 'edit' | 'stock' | 'delete'  // نوع الحركة: تعديل، حركة مخزون، حذف
+  description: string  // وصف الحركة
+  oldValue?: string  // القيمة القديمة (للتعديل)
+  newValue?: string  // القيمة الجديدة (للتعديل)
+  quantity?: number  // الكمية (لحركة المخزون)
+  userId: string  // معرف المستخدم الذي قام بالحركة
+  createdAt: string  // تاريخ الحركة
+}

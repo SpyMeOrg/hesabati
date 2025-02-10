@@ -5,16 +5,18 @@ import { useInventory } from "../contexts/InventoryContext"
 import { DeleteProductDialog } from "../components/DeleteProductDialog"
 import { AddProductDialog } from "../components/AddProductDialog"
 import { ExcelImportExport } from "../components/ExcelImportExport"
-import { Product } from "../types"
+import { Product, ProductMovement } from "../types"
 import { format } from "date-fns"
 import { ar } from "date-fns/locale"
 import { cn } from "@/lib/utils"
+import { ProductMovementsDialog } from "../components/ProductMovementsDialog"
 
 export function InventoryPage() {
   const { products, categories, units } = useInventory()
   const [addProductOpen, setAddProductOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null)
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
 
   // إحصائيات المخزون
@@ -36,6 +38,34 @@ export function InventoryPage() {
   const handleEditProduct = (product: Product) => {
     setEditingProduct(product)
     setAddProductOpen(true)
+  }
+
+  // بيانات تجريبية للحركات - يجب استبدالها بالبيانات الفعلية من قاعدة البيانات
+  const movements: ProductMovement[] = selectedProduct ? [
+    {
+      id: '1',
+      productId: selectedProduct.id,
+      type: 'edit',
+      description: 'تعديل السعر',
+      oldValue: '250',
+      newValue: '300',
+      userId: 'أحمد',
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: '2',
+      productId: selectedProduct.id,
+      type: 'stock',
+      description: 'وحدة',
+      quantity: -5,
+      userId: 'محمد',
+      createdAt: new Date(Date.now() - 86400000).toISOString()
+    }
+  ] : []
+
+  // معالجة الضغط على صف المنتج
+  const handleRowClick = (product: Product) => {
+    setSelectedProduct(product)
   }
 
   // دالة مساعدة للحصول على اسم التصنيف
@@ -161,21 +191,24 @@ export function InventoryPage() {
                   <tr>
                     <th className="py-3 px-4 font-medium text-gray-500">الاسم</th>
                     <th className="py-3 px-4 font-medium text-gray-500">التصنيف</th>
+                    <th className="py-3 px-4 font-medium text-gray-500">الكمية</th>
                     <th className="py-3 px-4 font-medium text-gray-500">الوحدة</th>
                     <th className="py-3 px-4 font-medium text-gray-500">السعر</th>
-                    <th className="py-3 px-4 font-medium text-gray-500">الكمية</th>
+                    <th className="py-3 px-4 font-medium text-gray-500">السعر الإجمالي</th>
                     <th className="py-3 px-4 font-medium text-gray-500">الحد الأدنى</th>
-                    <th className="text-right py-3 px-4 font-medium text-gray-500">تاريخ الإضافة</th>
-                    <th className="py-3 px-4"></th>
+                    <th className="py-3 px-4 font-medium text-gray-500">تاريخ الإضافة</th>
+                    <th className="py-3 px-4 font-medium text-gray-500">إجراءات</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
                   {filteredProducts.map(product => (
-                    <tr key={product.id} className="hover:bg-gray-50">
+                    <tr 
+                      key={product.id} 
+                      className="hover:bg-gray-50 cursor-pointer"
+                      onClick={() => handleRowClick(product)}
+                    >
                       <td className="py-3 px-4 font-medium">{product.name}</td>
                       <td className="py-3 px-4">{getCategoryName(product.categoryId)}</td>
-                      <td className="py-3 px-4">{getUnitName(product.unitId)}</td>
-                      <td className="py-3 px-4">{product.price.toLocaleString()} جنيه</td>
                       <td className="py-3 px-4">
                         <span className={cn(
                           "px-2 py-1 rounded-full text-sm",
@@ -188,6 +221,9 @@ export function InventoryPage() {
                           {product.quantity}
                         </span>
                       </td>
+                      <td className="py-3 px-4">{getUnitName(product.unitId)}</td>
+                      <td className="py-3 px-4">{product.price.toLocaleString()} جنيه</td>
+                      <td className="py-3 px-4">{(product.price * product.quantity).toLocaleString()} جنيه</td>
                       <td className="py-3 px-4">
                         {product.minQuantity ? product.minQuantity.toLocaleString() : "-"}
                       </td>
@@ -195,22 +231,24 @@ export function InventoryPage() {
                         {format(new Date(product.createdAt), "d MMMM yyyy", { locale: ar })}
                       </td>
                       <td className="py-3 px-4">
-                        <div className="flex justify-end gap-2">
+                        <div className="flex justify-center gap-2">
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-3"
                             onClick={() => handleEditProduct(product)}
                           >
-                            <i className="fas fa-edit"></i>
+                            <i className="fas fa-edit ml-1"></i>
+                            تعديل
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50 px-3"
                             onClick={() => setDeletingProduct(product)}
                           >
-                            <i className="fas fa-trash-alt"></i>
+                            <i className="fas fa-trash-alt ml-1"></i>
+                            حذف
                           </Button>
                         </div>
                       </td>
@@ -243,6 +281,17 @@ export function InventoryPage() {
           }
         }}
         product={deletingProduct}
+      />
+
+      <ProductMovementsDialog
+        open={!!selectedProduct}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedProduct(null)
+          }
+        }}
+        movements={movements}
+        productName={selectedProduct?.name || ''}
       />
     </div>
   )
