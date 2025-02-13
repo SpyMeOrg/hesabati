@@ -15,9 +15,11 @@ import { Label } from "@/components/ui/label"
 import { InventoryMovementType } from "../types"
 import { cn } from "@/lib/utils"
 import { ProductStats } from "../components/ProductStats"
+import { useAuth } from "@/contexts/AuthContext"
 
 export function StockTakePage() {
   const { products, addMovement, getProductStats } = useInventory()
+  const { user } = useAuth()
   const [selectedProduct, setSelectedProduct] = useState("")
   const [quantity, setQuantity] = useState("")
   const [type, setType] = useState<InventoryMovementType>(InventoryMovementType.ADDITION)
@@ -41,95 +43,95 @@ export function StockTakePage() {
     )
   }, [products, searchTerm])
 
-  // إضافة حركة جديدة
+  // معالجة تقديم النموذج
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    if (!selectedProduct || !quantity) {
-      alert("الرجاء إدخال جميع البيانات المطلوبة")
-      return
-    }
+    if (!selectedProduct || !quantity || !user) return
 
     const product = products.find(p => p.id === selectedProduct)
     if (!product) return
 
-    const quantityNum = Number(quantity)
-    if (isNaN(quantityNum) || quantityNum <= 0) {
-      alert("الرجاء إدخال كمية صحيحة")
-      return
-    }
-
-    // التحقق من الكمية المتاحة عند السحب
-    if (type === InventoryMovementType.SUBTRACTION && quantityNum > product.quantity) {
-      alert("الكمية المطلوبة غير متوفرة في المخزون")
-      return
-    }
+    const numericQuantity = Number(quantity)
+    const oldQuantity = product.quantity
+    const newQuantity = type === InventoryMovementType.ADDITION
+      ? oldQuantity + numericQuantity
+      : oldQuantity - numericQuantity
 
     try {
       await addMovement({
         productId: selectedProduct,
         type,
-        quantity: quantityNum,
-        oldQuantity: product.quantity,
-        newQuantity: type === InventoryMovementType.ADDITION 
-          ? product.quantity + quantityNum 
-          : product.quantity - quantityNum,
+        quantity: numericQuantity,
+        oldQuantity,
+        newQuantity,
         price: product.price,
-        userId: "admin", // يجب تغييرها لاحقاً مع نظام المستخدمين
+        userId: user.id,
         notes
       })
 
       // إعادة تعيين النموذج
-      setSelectedProduct("")
       setQuantity("")
       setNotes("")
-      alert("تم تسجيل الحركة بنجاح")
+      setType(InventoryMovementType.ADDITION)
     } catch (error) {
       console.error("Error adding movement:", error)
-      alert(error instanceof Error ? error.message : "حدث خطأ أثناء تسجيل الحركة")
+      alert("حدث خطأ أثناء تسجيل الحركة")
     }
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6" dir="rtl">
+    <div className="container mx-auto py-6 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">جرد المخزون</h1>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* نموذج إضافة حركة */}
-        <Card>
+      <div className="grid grid-cols-12 gap-6">
+        {/* قائمة المنتجات */}
+        <Card className="col-span-8">
           <CardHeader>
-            <CardTitle>تسجيل حركة مخزون</CardTitle>
+            <CardTitle>المنتجات</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label>المنتج</Label>
-                <div className="relative">
-                  <Input
-                    type="text"
-                    placeholder="بحث عن منتج..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="mb-2"
-                  />
-                  <div className="max-h-40 overflow-y-auto border rounded-lg">
-                    {filteredProducts.map(product => (
-                      <div
+            <div className="space-y-4">
+              <Input
+                placeholder="بحث عن منتج..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+
+              <div className="h-[60vh] overflow-y-auto">
+                <Table>
+                  <TableBody>
+                    {filteredProducts.map((product) => (
+                      <TableRow
                         key={product.id}
                         className={cn(
-                          "p-2 cursor-pointer hover:bg-gray-100",
-                          selectedProduct === product.id && "bg-primary/10"
+                          "cursor-pointer hover:bg-muted transition-colors",
+                          selectedProduct === product.id && "bg-muted"
                         )}
                         onClick={() => setSelectedProduct(product.id)}
                       >
-                        {product.name}
-                      </div>
+                        <TableCell className="font-medium">{product.name}</TableCell>
+                        <TableCell>{product.quantity}</TableCell>
+                      </TableRow>
                     ))}
-                  </div>
-                </div>
+                  </TableBody>
+                </Table>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* نموذج إضافة حركة */}
+        <Card className="col-span-4">
+          <CardHeader>
+            <CardTitle>تسجيل حركة</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {selectedProductStats && (
+                <ProductStats stats={selectedProductStats} />
+              )}
 
               <div className="space-y-2">
                 <Label>نوع الحركة</Label>
@@ -174,25 +176,13 @@ export function StockTakePage() {
               <Button
                 type="submit"
                 className="w-full"
-                disabled={!selectedProduct || !quantity}
+                disabled={!selectedProduct || !quantity || !user}
               >
                 تسجيل الحركة
               </Button>
             </form>
           </CardContent>
         </Card>
-
-        {/* تفاصيل المنتج المحدد */}
-        {selectedProductStats && (
-          <Card>
-            <CardHeader>
-              <CardTitle>تفاصيل المنتج</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ProductStats stats={selectedProductStats} />
-            </CardContent>
-          </Card>
-        )}
       </div>
     </div>
   )

@@ -11,6 +11,7 @@ import { format } from "date-fns"
 import { ar } from "date-fns/locale"
 import { InventoryMovement } from "../types"
 import { useInventory } from "../contexts/InventoryContext"
+import { useAuth } from "@/contexts/AuthContext"
 
 interface InventoryMovementsTableProps {
   movements: InventoryMovement[]
@@ -19,6 +20,7 @@ interface InventoryMovementsTableProps {
 
 export function InventoryMovementsTable({ movements, productName }: InventoryMovementsTableProps) {
   const { products } = useInventory()
+  const { users } = useAuth()
 
   // ترتيب الحركات من الأحدث إلى الأقدم
   const sortedMovements = useMemo(() => {
@@ -31,6 +33,12 @@ export function InventoryMovementsTable({ movements, productName }: InventoryMov
   const getProductName = (productId: string) => {
     const product = products.find(p => p.id === productId)
     return product?.name || productId
+  }
+
+  // الحصول على اسم المستخدم
+  const getUserName = (userId: string) => {
+    const user = users?.find(u => u.id === userId)
+    return user?.username || userId
   }
 
   return (
@@ -67,7 +75,7 @@ export function InventoryMovementsTable({ movements, productName }: InventoryMov
               <TableCell>{movement.oldQuantity}</TableCell>
               <TableCell>{movement.newQuantity}</TableCell>
               <TableCell>{movement.price.toLocaleString()} جنيه</TableCell>
-              <TableCell>{movement.userId}</TableCell>
+              <TableCell>{getUserName(movement.userId)}</TableCell>
               <TableCell>{movement.notes || "-"}</TableCell>
             </TableRow>
           ))}

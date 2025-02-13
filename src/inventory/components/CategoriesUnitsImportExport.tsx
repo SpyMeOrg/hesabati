@@ -69,6 +69,8 @@ export function CategoriesUnitsImportExport() {
         
         // أولاً: إضافة التصنيفات الرئيسية
         const mainCategories = categoriesData.filter(row => row['نوع التصنيف'] === 'رئيسي')
+        const mainCategoriesMap = new Map<string, string>() // لتخزين العلاقة بين اسم التصنيف الرئيسي والمعرف الخاص به
+
         for (const row of mainCategories) {
           const newCategory = {
             name: row['اسم التصنيف'],
@@ -79,6 +81,11 @@ export function CategoriesUnitsImportExport() {
 
           try {
             await addCategory(newCategory)
+            // نبحث عن التصنيف المضاف في قائمة التصنيفات
+            const addedCategory = categories.find(c => c.name === row['اسم التصنيف'] && !c.isSubcategory)
+            if (addedCategory) {
+              mainCategoriesMap.set(row['اسم التصنيف'], addedCategory.id)
+            }
           } catch (error) {
             console.error('خطأ في إضافة التصنيف الرئيسي:', error)
           }
@@ -88,10 +95,9 @@ export function CategoriesUnitsImportExport() {
         const subCategories = categoriesData.filter(row => row['نوع التصنيف'] !== 'رئيسي')
         for (const row of subCategories) {
           const parentName = row['التصنيف الرئيسي']
-          // البحث عن التصنيف الرئيسي في قائمة التصنيفات المحدثة
-          const parentCategory = categories.find(c => c.name === parentName && !c.parentId)
+          const parentId = mainCategoriesMap.get(parentName)
           
-          if (!parentCategory) {
+          if (!parentId) {
             console.error(`لم يتم العثور على التصنيف الرئيسي: ${parentName}`)
             continue
           }
@@ -99,7 +105,7 @@ export function CategoriesUnitsImportExport() {
           const newCategory = {
             name: row['اسم التصنيف'],
             description: row['الوصف'] || undefined,
-            parentId: parentCategory.id,
+            parentId: parentId,
             isSubcategory: true
           }
 

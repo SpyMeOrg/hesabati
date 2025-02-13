@@ -234,7 +234,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
     }
 
     setUnits(prev => prev.filter(u => u.id !== id))
-  }, [products])
+  }, [products, units])
 
   // وظائف إدارة الحركات
   const addMovement = useCallback(async (movement: NewInventoryMovement): Promise<void> => {

@@ -3,6 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { format } from "date-fns"
 import { ar } from "date-fns/locale"
 import { ProductMovement } from "../types"
+import { useAuth } from "@/contexts/AuthContext"
 
 type ProductMovementsDialogProps = {
   open: boolean
@@ -17,6 +18,8 @@ export function ProductMovementsDialog({
   movements,
   productName
 }: ProductMovementsDialogProps) {
+  const { users } = useAuth()
+
   // تحويل نوع الحركة إلى نص عربي
   const getMovementTypeText = (type: ProductMovement['type']) => {
     switch (type) {
@@ -41,6 +44,12 @@ export function ProductMovementsDialog({
       return `${sign} ${Math.abs(movement.quantity)} ${movement.description}`
     }
     return movement.description
+  }
+
+  // الحصول على اسم المستخدم
+  const getUserName = (userId: string) => {
+    const user = users?.find(u => u.id === userId)
+    return user?.username || userId
   }
 
   return (
@@ -74,7 +83,7 @@ export function ProductMovementsDialog({
                     </TableCell>
                     <TableCell>{getMovementTypeText(movement.type)}</TableCell>
                     <TableCell>{formatMovementDescription(movement)}</TableCell>
-                    <TableCell>{movement.userId}</TableCell>
+                    <TableCell>{getUserName(movement.userId)}</TableCell>
                   </TableRow>
                 ))
               )}
