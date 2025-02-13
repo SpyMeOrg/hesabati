@@ -80,11 +80,26 @@ interface InventoryContextType {
 const InventoryContext = createContext<InventoryContextType | null>(null)
 
 export function InventoryProvider({ children }: { children: ReactNode }) {
-  const [products, setProducts] = useState<Product[]>([])
-  const [categories, setCategories] = useState<Category[]>([])
-  const [units, setUnits] = useState<Unit[]>([])
-  const [movements, setMovements] = useState<InventoryMovement[]>([])
-  const [stockTakes, setStockTakes] = useState<StockTake[]>([])
+  const [products, setProducts] = useState<Product[]>(() => {
+    const savedProducts = localStorage.getItem("products")
+    return savedProducts ? JSON.parse(savedProducts) : []
+  })
+  const [categories, setCategories] = useState<Category[]>(() => {
+    const savedCategories = localStorage.getItem("categories")
+    return savedCategories ? JSON.parse(savedCategories) : []
+  })
+  const [units, setUnits] = useState<Unit[]>(() => {
+    const savedUnits = localStorage.getItem("units")
+    return savedUnits ? JSON.parse(savedUnits) : []
+  })
+  const [movements, setMovements] = useState<InventoryMovement[]>(() => {
+    const savedMovements = localStorage.getItem("movements")
+    return savedMovements ? JSON.parse(savedMovements) : []
+  })
+  const [stockTakes, setStockTakes] = useState<StockTake[]>(() => {
+    const savedStockTakes = localStorage.getItem("stockTakes")
+    return savedStockTakes ? JSON.parse(savedStockTakes) : []
+  })
   
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
   const [editingUnit, setEditingUnit] = useState<Unit | null>(null)
@@ -333,6 +348,27 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
   const deleteStockTake = async (id: string) => {
     setStockTakes(prev => prev.filter(st => st.id !== id))
   }
+
+  // إضافة useEffect لحفظ البيانات في التخزين المحلي عند تغييرها
+  useEffect(() => {
+    localStorage.setItem("products", JSON.stringify(products))
+  }, [products])
+
+  useEffect(() => {
+    localStorage.setItem("categories", JSON.stringify(categories))
+  }, [categories])
+
+  useEffect(() => {
+    localStorage.setItem("units", JSON.stringify(units))
+  }, [units])
+
+  useEffect(() => {
+    localStorage.setItem("movements", JSON.stringify(movements))
+  }, [movements])
+
+  useEffect(() => {
+    localStorage.setItem("stockTakes", JSON.stringify(stockTakes))
+  }, [stockTakes])
 
   // القيمة المصدرة للسياق
   const value = useMemo(() => ({
