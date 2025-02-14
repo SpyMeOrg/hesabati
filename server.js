@@ -218,12 +218,23 @@ app.get('/api/products/stats', (req, res) => {
 });
 
 // تقديم الملفات الثابتة
-app.use(express.static(path.join(__dirname, 'dist')));
-
-// توجيه كل المسارات الأخرى إلى index.html
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-});
+if (process.env.VERCEL) {
+    // في بيئة Vercel
+    app.use(express.static('dist'));
+    app.get('*', (req, res) => {
+        if (req.path.startsWith('/api')) {
+            res.status(404).json({ error: 'API endpoint not found' });
+        } else {
+            res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+        }
+    });
+} else {
+    // في البيئة المحلية
+    app.use(express.static(path.join(__dirname, 'dist')));
+    app.get('*', (req, res) => {
+        res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+    });
+}
 
 // إغلاق قاعدة البيانات عند إيقاف التطبيق
 process.on('SIGINT', () => {
