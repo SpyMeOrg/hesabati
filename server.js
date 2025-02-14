@@ -107,6 +107,30 @@ app.post('/api/units', (req, res) => {
     stmt.finalize();
 });
 
+app.put('/api/units/:id', (req, res) => {
+    const stmt = db.prepare('UPDATE units SET name = ? WHERE id = ?');
+    stmt.run([req.body.name, req.params.id], function(err) {
+        if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+        }
+        res.json({ changes: this.changes });
+    });
+    stmt.finalize();
+});
+
+app.delete('/api/units/:id', (req, res) => {
+    const stmt = db.prepare('DELETE FROM units WHERE id = ?');
+    stmt.run([req.params.id], function(err) {
+        if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+        }
+        res.json({ changes: this.changes });
+    });
+    stmt.finalize();
+});
+
 app.get('/api/products', (req, res) => {
     db.all('SELECT * FROM products', (err, rows) => {
         if (err) {
@@ -125,6 +149,30 @@ app.post('/api/products', (req, res) => {
             return;
         }
         res.json({ id: req.body.id, changes: this.changes });
+    });
+    stmt.finalize();
+});
+
+app.put('/api/products/:id', (req, res) => {
+    const stmt = db.prepare('UPDATE products SET name = ?, categoryId = ?, unitId = ? WHERE id = ?');
+    stmt.run([req.body.name, req.body.categoryId, req.body.unitId, req.params.id], function(err) {
+        if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+        }
+        res.json({ changes: this.changes });
+    });
+    stmt.finalize();
+});
+
+app.delete('/api/products/:id', (req, res) => {
+    const stmt = db.prepare('DELETE FROM products WHERE id = ?');
+    stmt.run([req.params.id], function(err) {
+        if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+        }
+        res.json({ changes: this.changes });
     });
     stmt.finalize();
 });
@@ -149,6 +197,36 @@ app.post('/api/movements', (req, res) => {
         res.json({ id: req.body.id, changes: this.changes });
     });
     stmt.finalize();
+});
+
+app.get('/api/movements/product/:productId', (req, res) => {
+    db.all('SELECT * FROM movements WHERE productId = ? ORDER BY date DESC', [req.params.productId], (err, rows) => {
+        if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+        }
+        res.json(rows);
+    });
+});
+
+app.get('/api/products/stats', (req, res) => {
+    db.all(`
+        SELECT 
+            p.id,
+            p.name,
+            p.categoryId,
+            p.unitId,
+            COALESCE(SUM(CASE WHEN m.type = 'in' THEN m.quantity ELSE -m.quantity END), 0) as currentStock
+        FROM products p
+        LEFT JOIN movements m ON p.id = m.productId
+        GROUP BY p.id
+    `, (err, rows) => {
+        if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+        }
+        res.json(rows);
+    });
 });
 
 // تقديم الملفات الثابتة

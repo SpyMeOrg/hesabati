@@ -7,12 +7,19 @@ export default defineConfig({
   plugins: [react()],
   base: '/',
   server: {
-    port: 8080,
+    port: 3000,
     host: true,
     strictPort: false,
     cors: true,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        secure: false,
+      }
+    },
     hmr: {
-      clientPort: 8080,
+      clientPort: 3000,
       host: 'localhost'
     },
     watch: {

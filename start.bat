@@ -5,11 +5,11 @@ echo.
 REM إنشاء مجلد البيانات إذا لم يكن موجوداً
 if not exist "data" mkdir data
 
-REM تشغيل الخادم
-start /B server.exe
+REM تشغيل البرنامج
+start /B hesabati.exe
 
 REM انتظار لحظة للتأكد من تشغيل الخادم
-timeout /t 2 > nul
+timeout /t 3 > nul
 
 REM فتح المتصفح
 start http://localhost:3000
