@@ -11,50 +11,66 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// إنشاء مجلد البيانات إذا لم يكن موجوداً
-const dataPath = path.join(__dirname, 'data');
-if (!fs.existsSync(dataPath)) {
-    fs.mkdirSync(dataPath);
-}
-
-// إنشاء قاعدة البيانات
-const dbPath = path.join(dataPath, 'database.sqlite');
+// تحديد مسار قاعدة البيانات بناءً على بيئة التشغيل
+const isVercel = process.env.VERCEL === '1';
+const dbPath = isVercel ? ':memory:' : path.join(__dirname, 'data', 'database.sqlite');
 const db = new Database(dbPath);
 
-// إنشاء الجداول
-db.exec(`CREATE TABLE IF NOT EXISTS categories (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    isSubcategory INTEGER DEFAULT 0,
-    parentId TEXT,
-    createdAt TEXT DEFAULT CURRENT_TIMESTAMP
-)`);
+// إنشاء الجداول وإضافة بيانات افتراضية في بيئة Vercel
+function initializeDatabase() {
+    // إنشاء الجداول
+    db.exec(`CREATE TABLE IF NOT EXISTS categories (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        isSubcategory INTEGER DEFAULT 0,
+        parentId TEXT,
+        createdAt TEXT DEFAULT CURRENT_TIMESTAMP
+    )`);
 
-db.exec(`CREATE TABLE IF NOT EXISTS units (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    createdAt TEXT DEFAULT CURRENT_TIMESTAMP
-)`);
+    db.exec(`CREATE TABLE IF NOT EXISTS units (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        createdAt TEXT DEFAULT CURRENT_TIMESTAMP
+    )`);
 
-db.exec(`CREATE TABLE IF NOT EXISTS products (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    categoryId TEXT,
-    unitId TEXT,
-    createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (categoryId) REFERENCES categories(id),
-    FOREIGN KEY (unitId) REFERENCES units(id)
-)`);
+    db.exec(`CREATE TABLE IF NOT EXISTS products (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        categoryId TEXT,
+        unitId TEXT,
+        createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (categoryId) REFERENCES categories(id),
+        FOREIGN KEY (unitId) REFERENCES units(id)
+    )`);
 
-db.exec(`CREATE TABLE IF NOT EXISTS movements (
-    id TEXT PRIMARY KEY,
-    productId TEXT,
-    type TEXT NOT NULL,
-    quantity REAL NOT NULL,
-    date TEXT DEFAULT CURRENT_TIMESTAMP,
-    notes TEXT,
-    FOREIGN KEY (productId) REFERENCES products(id)
-)`);
+    db.exec(`CREATE TABLE IF NOT EXISTS movements (
+        id TEXT PRIMARY KEY,
+        productId TEXT,
+        type TEXT NOT NULL,
+        quantity REAL NOT NULL,
+        date TEXT DEFAULT CURRENT_TIMESTAMP,
+        notes TEXT,
+        FOREIGN KEY (productId) REFERENCES products(id)
+    )`);
+
+    if (isVercel) {
+        // إضافة بيانات افتراضية للاختبار في بيئة Vercel
+        try {
+            db.exec(`INSERT INTO categories (id, name) VALUES 
+                ('cat1', 'تصنيف 1'),
+                ('cat2', 'تصنيف 2')`);
+            
+            db.exec(`INSERT INTO units (id, name) VALUES 
+                ('unit1', 'قطعة'),
+                ('unit2', 'كيلو')`);
+        } catch (err) {
+            console.log('تم تجاهل إضافة البيانات الافتراضية: قد تكون موجودة بالفعل');
+        }
+    }
+}
+
+// تهيئة قاعدة البيانات
+initializeDatabase();
 
 // الراوترز
 app.get('/api/categories', (req, res) => {
