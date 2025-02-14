@@ -218,13 +218,19 @@ app.get('/api/products/stats', (req, res) => {
 });
 
 // تقديم الملفات الثابتة
-app.use(express.static(path.join(__dirname, 'dist')));
+app.use(express.static('dist'));
 
 // توجيه كل المسارات الأخرى إلى index.html
 app.get('*', (req, res) => {
     // التحقق من أن المسار ليس API
     if (!req.path.startsWith('/api')) {
-        res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+        console.log('توجيه إلى index.html:', req.path);
+        res.sendFile('dist/index.html', { root: __dirname }, (err) => {
+            if (err) {
+                console.error('خطأ في إرسال الملف:', err);
+                res.status(500).send('خطأ في تحميل الصفحة');
+            }
+        });
     }
 });
 

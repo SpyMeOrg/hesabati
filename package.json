@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "server": "node server.js",
     "start": "node server.js",
-    "vercel-build": "npm run build && mkdir -p dist && cp -r dist/* .",
+    "vercel-build": "npm run build && cp -r dist/* .",
     "pkg": "pkg .",
     "build-exe": "npm run build && pkg ."
   },
