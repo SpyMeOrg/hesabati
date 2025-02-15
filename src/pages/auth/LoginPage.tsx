@@ -45,13 +45,16 @@ export function LoginPage() {
     }
   }
 
-  const handleKeyDown = async (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault()
       const form = e.currentTarget.closest('form')
       if (form) {
-        const event = new Event('submit', { cancelable: true, bubbles: true })
-        form.dispatchEvent(event)
+        const submitEvent = new Event('submit', { 
+          bubbles: true, 
+          cancelable: true 
+        }) as unknown as React.FormEvent
+        handleSubmit(submitEvent)
       }
     }
   }
