@@ -50,11 +50,10 @@ export function LoginPage() {
       e.preventDefault()
       const form = e.currentTarget.closest('form')
       if (form) {
-        const submitEvent = new Event('submit', { 
+        handleSubmit(new Event('submit', { 
           bubbles: true, 
           cancelable: true 
-        }) as unknown as React.FormEvent
-        handleSubmit(submitEvent)
+        }) as unknown as React.FormEvent)
       }
     }
   }
@@ -72,6 +71,7 @@ export function LoginPage() {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               onKeyDown={handleKeyDown}
+              autoComplete="username"
               required
             />
           </div>
@@ -83,10 +83,15 @@ export function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               onKeyDown={handleKeyDown}
+              autoComplete="current-password"
               required
             />
           </div>
-          <Button type="submit" className="w-full" disabled={isLoading}>
+          <Button 
+            type="submit" 
+            className="w-full" 
+            disabled={isLoading || !username || !password}
+          >
             {isLoading ? "جاري تسجيل الدخول..." : "تسجيل الدخول"}
           </Button>
         </form>
