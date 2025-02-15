@@ -218,14 +218,24 @@ app.get('/api/products/stats', (req, res) => {
 });
 
 // تقديم الملفات الثابتة
-app.use(express.static('dist'));
+if (process.env.VERCEL) {
+    // في بيئة Vercel
+    app.use(express.static(path.join(__dirname)));
+} else {
+    // في البيئة المحلية
+    app.use(express.static(path.join(__dirname, 'dist')));
+}
 
 // توجيه كل المسارات الأخرى إلى index.html
 app.get('*', (req, res) => {
     // التحقق من أن المسار ليس API
     if (!req.path.startsWith('/api')) {
         console.log('توجيه إلى index.html:', req.path);
-        res.sendFile('dist/index.html', { root: __dirname }, (err) => {
+        const indexPath = process.env.VERCEL 
+            ? path.join(__dirname, 'index.html')
+            : path.join(__dirname, 'dist', 'index.html');
+            
+        res.sendFile(indexPath, (err) => {
             if (err) {
                 console.error('خطأ في إرسال الملف:', err);
                 res.status(500).send('خطأ في تحميل الصفحة');
