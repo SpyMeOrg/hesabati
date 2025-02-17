@@ -7,12 +7,19 @@ export default defineConfig({
   plugins: [react()],
   base: '/',
   server: {
-    port: 8080,
+    port: 3000,
     host: true,
     strictPort: false,
     cors: true,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        secure: false,
+      }
+    },
     hmr: {
-      clientPort: 8080,
+      clientPort: 3000,
       host: 'localhost'
     },
     watch: {
@@ -32,8 +39,21 @@ export default defineConfig({
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
+          ui: [
+            '@radix-ui/react-accordion',
+            '@radix-ui/react-alert-dialog',
+            '@radix-ui/react-avatar',
+            '@radix-ui/react-checkbox',
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-dropdown-menu',
+            '@radix-ui/react-label',
+            '@radix-ui/react-select',
+            '@radix-ui/react-tabs',
+            '@radix-ui/react-toast'
+          ]
         },
-      },
+        chunkSizeWarningLimit: 1000
+      }
     },
   },
 });

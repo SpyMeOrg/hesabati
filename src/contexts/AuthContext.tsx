@@ -3,6 +3,7 @@ import { User } from "../admin/types"
 
 interface AuthContextType {
   user: User | null
+  users: User[]
   isLoading: boolean
   login: (usernameOrEmail: string, password: string) => Promise<void>
   logout: () => void
@@ -17,6 +18,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return savedUser ? JSON.parse(savedUser) : null
   })
 
+  const [users, setUsers] = useState<User[]>(() => {
+    const savedUsers = localStorage.getItem("users")
+    return savedUsers ? JSON.parse(savedUsers) : []
+  })
+
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -26,7 +32,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (usernameOrEmail: string, password: string) => {
     setIsLoading(true)
     try {
-      const users = JSON.parse(localStorage.getItem("users") || "[]") as User[]
       const user = users.find(u => 
         (u.username === usernameOrEmail || u.email === usernameOrEmail)
       )
@@ -63,7 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isAuthenticated = user !== null
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout, isAuthenticated }}>
+    <AuthContext.Provider value={{ user, users, isLoading, login, logout, isAuthenticated }}>
       {children}
     </AuthContext.Provider>
   )

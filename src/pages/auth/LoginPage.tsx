@@ -22,6 +22,7 @@ export function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (isLoading) return
     setIsLoading(true)
 
     try {
@@ -44,6 +45,19 @@ export function LoginPage() {
     }
   }
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      const form = e.currentTarget.closest('form')
+      if (form) {
+        handleSubmit(new Event('submit', { 
+          bubbles: true, 
+          cancelable: true 
+        }) as unknown as React.FormEvent)
+      }
+    }
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <Card className="w-full max-w-md p-8">
@@ -56,6 +70,8 @@ export function LoginPage() {
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
+              onKeyDown={handleKeyDown}
+              autoComplete="username"
               required
             />
           </div>
@@ -66,10 +82,16 @@ export function LoginPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={handleKeyDown}
+              autoComplete="current-password"
               required
             />
           </div>
-          <Button type="submit" className="w-full" disabled={isLoading}>
+          <Button 
+            type="submit" 
+            className="w-full" 
+            disabled={isLoading || !username || !password}
+          >
             {isLoading ? "جاري تسجيل الدخول..." : "تسجيل الدخول"}
           </Button>
         </form>

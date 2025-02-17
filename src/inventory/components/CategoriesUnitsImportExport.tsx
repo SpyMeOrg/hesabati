@@ -2,56 +2,69 @@ import { Button } from "@/components/ui/button"
 import { useInventory } from "../contexts/InventoryContext"
 import type { Category, Unit } from "../types"
 import * as XLSX from 'xlsx'
+import { useState } from "react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Input } from "@/components/ui/input"
+import { AlertCircle } from "lucide-react"
 
 export function CategoriesUnitsImportExport() {
   const { categories, units, addCategory, addUnit } = useInventory()
+  const [error, setError] = useState<string | null>(null)
 
   const handleExport = () => {
-    // تجهيز البيانات للتصدير
-    const categoriesData = categories.map((cat: Category) => {
-      // تحديد نوع التصنيف (رئيسي/فرعي)
-      const isMain = !cat.parentId
-      return {
-        'نوع التصنيف': isMain ? 'رئيسي' : 'فرعي',
-        'التصنيف الرئيسي': isMain ? '-' : categories.find(c => c.id === cat.parentId)?.name || '',
-        'اسم التصنيف': cat.name,
-        'الوصف': cat.description || '',
-        'تاريخ الإضافة': new Date(cat.createdAt).toLocaleDateString('ar-EG')
+    try {
+      // تجهيز البيانات للتصدير
+      const categoriesData = categories.map((cat: Category) => {
+        const isSubcategory = cat.parentId !== undefined && cat.parentId !== null
+        const parentCategory = isSubcategory ? categories.find(c => c.id === cat.parentId) : null
+        
+        return {
+          'نوع التصنيف': isSubcategory ? 'فرعي' : 'رئيسي',
+          'التصنيف الرئيسي': isSubcategory ? (parentCategory?.name || '') : '-',
+          'اسم التصنيف': cat.name,
+          'الوصف': cat.description || '',
+          'تاريخ الإضافة': new Date(cat.createdAt).toLocaleDateString('ar-EG')
+        }
+      })
+
+      console.log('Categories data for export:', categoriesData)
+
+      const unitsData = units.map((unit: Unit) => ({
+        'اسم الوحدة': unit.name,
+        'الرمز': unit.symbol || '',
+        'تاريخ الإضافة': new Date(unit.createdAt).toLocaleDateString('ar-EG')
+      }))
+
+      const wb = XLSX.utils.book_new()
+      
+      // إضافة ورقة التصنيفات مع تفعيل RTL
+      const wsCategories = XLSX.utils.json_to_sheet(categoriesData)
+      wsCategories['!RTL'] = true
+      XLSX.utils.book_append_sheet(wb, wsCategories, "التصنيفات")
+      
+      // إضافة ورقة الوحدات مع تفعيل RTL
+      const wsUnits = XLSX.utils.json_to_sheet(unitsData)
+      wsUnits['!RTL'] = true
+      XLSX.utils.book_append_sheet(wb, wsUnits, "الوحدات")
+
+      // تعديل عرض الأعمدة
+      const setCellWidth = (worksheet: XLSX.WorkSheet) => {
+        const columnWidths = []
+        for (let i = 0; i < 10; i++) {
+          columnWidths.push({ wch: 20 })
+        }
+        worksheet['!cols'] = columnWidths
       }
-    })
 
-    const unitsData = units.map((unit: Unit) => ({
-      'اسم الوحدة': unit.name,
-      'الرمز': unit.symbol || '',
-      'تاريخ الإضافة': new Date(unit.createdAt).toLocaleDateString('ar-EG')
-    }))
-
-    const wb = XLSX.utils.book_new()
-    
-    // إضافة ورقة التصنيفات مع تفعيل RTL
-    const wsCategories = XLSX.utils.json_to_sheet(categoriesData)
-    wsCategories['!RTL'] = true
-    XLSX.utils.book_append_sheet(wb, wsCategories, "التصنيفات")
-    
-    // إضافة ورقة الوحدات مع تفعيل RTL
-    const wsUnits = XLSX.utils.json_to_sheet(unitsData)
-    wsUnits['!RTL'] = true
-    XLSX.utils.book_append_sheet(wb, wsUnits, "الوحدات")
-
-    // تعديل عرض الأعمدة
-    const setCellWidth = (worksheet: XLSX.WorkSheet) => {
-      const columnWidths = []
-      for (let i = 0; i < 10; i++) {
-        columnWidths.push({ wch: 20 }) // عرض كل عمود 20 حرف
-      }
-      worksheet['!cols'] = columnWidths
+      setCellWidth(wsCategories)
+      setCellWidth(wsUnits)
+      
+      // حفظ الملف
+      XLSX.writeFile(wb, "التصنيفات-والوحدات.xlsx")
+    } catch (error) {
+      console.error('Error during export:', error)
+      setError('حدث خطأ أثناء تصدير البيانات')
     }
-
-    setCellWidth(wsCategories)
-    setCellWidth(wsUnits)
-    
-    // حفظ الملف
-    XLSX.writeFile(wb, "التصنيفات-والوحدات.xlsx")
   }
 
   const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -66,47 +79,66 @@ export function CategoriesUnitsImportExport() {
       const categoriesSheet = workbook.Sheets["التصنيفات"]
       if (categoriesSheet) {
         const categoriesData = XLSX.utils.sheet_to_json<any>(categoriesSheet)
+        console.log('Imported categories data:', categoriesData)
         
-        // أولاً: إضافة التصنيفات الرئيسية
-        const mainCategories = categoriesData.filter(row => row['نوع التصنيف'] === 'رئيسي')
-        for (const row of mainCategories) {
-          const newCategory = {
-            name: row['اسم التصنيف'],
-            description: row['الوصف'] || undefined,
-            parentId: undefined,
-            isSubcategory: false
-          }
-
+        // أولاً: إضافة التصنيفات الرئيسية وتخزين معرفاتها
+        const mainCategoriesMap = new Map<string, string>()
+        
+        // إضافة التصنيفات الرئيسية
+        for (const row of categoriesData.filter(r => r['نوع التصنيف'] === 'رئيسي')) {
           try {
+            console.log('Adding main category:', row)
+            const newCategory = {
+              name: row['اسم التصنيف'],
+              description: row['الوصف'] || undefined,
+              isSubcategory: false,
+              parentId: undefined
+            }
+
             await addCategory(newCategory)
+            
+            // البحث عن التصنيف المضاف في قائمة التصنيفات المحدثة
+            const addedCategory = categories.find(c => 
+              c.name === row['اسم التصنيف'] && !c.isSubcategory
+            )
+            
+            if (addedCategory) {
+              mainCategoriesMap.set(row['اسم التصنيف'], addedCategory.id)
+              console.log('Main category mapped:', row['اسم التصنيف'], '->', addedCategory.id)
+            } else {
+              console.error('Could not find added main category:', row['اسم التصنيف'])
+            }
           } catch (error) {
-            console.error('خطأ في إضافة التصنيف الرئيسي:', error)
+            console.error('Error adding main category:', row['اسم التصنيف'], error)
           }
         }
 
-        // ثانياً: إضافة التصنيفات الفرعية
-        const subCategories = categoriesData.filter(row => row['نوع التصنيف'] !== 'رئيسي')
-        for (const row of subCategories) {
+        // إضافة التصنيفات الفرعية
+        const subcategories = categoriesData.filter(r => r['نوع التصنيف'] === 'فرعي')
+        console.log('Subcategories to add:', subcategories)
+        
+        for (const row of subcategories) {
           const parentName = row['التصنيف الرئيسي']
-          // البحث عن التصنيف الرئيسي في قائمة التصنيفات المحدثة
-          const parentCategory = categories.find(c => c.name === parentName && !c.parentId)
+          const parentId = mainCategoriesMap.get(parentName)
           
-          if (!parentCategory) {
-            console.error(`لم يتم العثور على التصنيف الرئيسي: ${parentName}`)
+          if (!parentId) {
+            console.error('Parent category not found:', parentName, 'for subcategory:', row['اسم التصنيف'])
             continue
           }
 
-          const newCategory = {
-            name: row['اسم التصنيف'],
-            description: row['الوصف'] || undefined,
-            parentId: parentCategory.id,
-            isSubcategory: true
-          }
-
           try {
+            console.log('Adding subcategory:', row['اسم التصنيف'], 'under parent:', parentName)
+            const newCategory = {
+              name: row['اسم التصنيف'],
+              description: row['الوصف'] || undefined,
+              isSubcategory: true,
+              parentId: parentId
+            }
+
             await addCategory(newCategory)
+            console.log('Successfully added subcategory:', row['اسم التصنيف'])
           } catch (error) {
-            console.error('خطأ في إضافة التصنيف الفرعي:', error)
+            console.error('Error adding subcategory:', row['اسم التصنيف'], error)
           }
         }
       }
@@ -115,55 +147,66 @@ export function CategoriesUnitsImportExport() {
       const unitsSheet = workbook.Sheets["الوحدات"]
       if (unitsSheet) {
         const unitsData = XLSX.utils.sheet_to_json<any>(unitsSheet)
+        console.log('Imported units data:', unitsData)
+        
         for (const row of unitsData) {
-          const newUnit = {
-            name: row['اسم الوحدة'],
-            symbol: row['الرمز'] || undefined
-          }
-
           try {
+            const newUnit = {
+              name: row['اسم الوحدة'],
+              symbol: row['الرمز'] || undefined
+            }
+
             await addUnit(newUnit)
           } catch (error) {
-            console.error('خطأ في إضافة الوحدة:', error)
+            console.error('Error adding unit:', row['اسم الوحدة'], error)
           }
         }
       }
 
       // تنظيف حقل الملف
       event.target.value = ''
-      alert('تم استيراد البيانات بنجاح')
+      setError(null)
     } catch (error) {
-      console.error('خطأ في استيراد الملف:', error)
-      alert('حدث خطأ أثناء استيراد الملف')
+      console.error('Import error:', error)
+      setError(error instanceof Error ? error.message : "حدث خطأ أثناء استيراد البيانات")
     }
   }
 
   return (
-    <div className="flex gap-2">
+    <div className="flex items-center gap-4" dir="rtl">
+      {error && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      
       <Button
         variant="outline"
         onClick={handleExport}
-        className="bg-green-50 hover:bg-green-100 text-green-600 hover:text-green-700"
+        className="bg-green-50 hover:bg-green-100 text-green-600 hover:text-green-700 flex items-center gap-2"
       >
-        <i className="fas fa-file-export ml-2"></i>
+        <i className="fas fa-file-export"></i>
         تصدير إلى Excel
       </Button>
 
-      <Button
-        variant="outline"
-        onClick={() => document.getElementById('import-file')?.click()}
-        className="bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700"
-      >
-        <i className="fas fa-file-import ml-2"></i>
-        استيراد من Excel
-      </Button>
-      <input
-        type="file"
-        id="import-file"
-        className="hidden"
-        accept=".xlsx,.xls"
-        onChange={handleImport}
-      />
+      <div className="relative">
+        <Button
+          variant="outline"
+          onClick={() => document.getElementById('import-file')?.click()}
+          className="bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 flex items-center gap-2"
+        >
+          <i className="fas fa-file-import"></i>
+          استيراد من Excel
+        </Button>
+        <input
+          type="file"
+          id="import-file"
+          className="hidden"
+          accept=".xlsx,.xls"
+          onChange={handleImport}
+        />
+      </div>
     </div>
   )
 }

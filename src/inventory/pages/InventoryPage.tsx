@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { useInventory } from "../contexts/InventoryContext"
 import { DeleteProductDialog } from "../components/DeleteProductDialog"
 import { AddProductDialog } from "../components/AddProductDialog"
@@ -10,9 +11,11 @@ import { format } from "date-fns"
 import { ar } from "date-fns/locale"
 import { cn } from "@/lib/utils"
 import { ProductMovementsDialog } from "../components/ProductMovementsDialog"
+import { useAuth } from "@/contexts/AuthContext"
 
 export function InventoryPage() {
   const { products, categories, units } = useInventory()
+  const { user } = useAuth()
   const [addProductOpen, setAddProductOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null)
@@ -30,9 +33,9 @@ export function InventoryPage() {
   ).length
 
   // تصفية المنتجات
-  const filteredProducts = products.filter(p =>
-    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    getCategoryName(p.categoryId).toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredProducts = products.filter(product =>
+    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    getCategoryName(product.categoryId).toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   const handleEditProduct = (product: Product) => {
@@ -40,8 +43,8 @@ export function InventoryPage() {
     setAddProductOpen(true)
   }
 
-  // بيانات تجريبية للحركات - يجب استبدالها بالبيانات الفعلية من قاعدة البيانات
-  const movements: ProductMovement[] = selectedProduct ? [
+  // بيانات حركات المنتج
+  const movements: ProductMovement[] = selectedProduct && user ? [
     {
       id: '1',
       productId: selectedProduct.id,
@@ -49,7 +52,7 @@ export function InventoryPage() {
       description: 'تعديل السعر',
       oldValue: '250',
       newValue: '300',
-      userId: 'أحمد',
+      userId: user.id,
       createdAt: new Date().toISOString()
     },
     {
@@ -58,7 +61,7 @@ export function InventoryPage() {
       type: 'stock',
       description: 'وحدة',
       quantity: -5,
-      userId: 'محمد',
+      userId: user.id,
       createdAt: new Date(Date.now() - 86400000).toISOString()
     }
   ] : []
