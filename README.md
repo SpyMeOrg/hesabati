@@ -66,3 +66,27 @@
 ## الترخيص
 
 هذا المشروع مرخص تحت [رخصة خاصة]. جميع الحقوق محفوظة.
+
+تنصيب جيت :
+
+git config --global user.name "SpyMeOrg"
+git config --global user.email "admin@spyme.org"
+
+للتحقق من نجاح التثبيت:
+افتح PowerShell أو Command Prompt جديد
+
+اكتب git --version
+
+يجب أن ترى رقم إصدار Git
+إعدادات إضافية مفيدة (اختيارية):
+# لتخزين بيانات اعتماد GitHub
+
+git config --global credential.helper store
+
+# لتعيين المحرر الافتراضي إلى VS Code
+
+git config --global core.editor "code --wait"
+
+# لتفعيل الألوان في مخرجات Git
+
+    git config --global color.ui auto

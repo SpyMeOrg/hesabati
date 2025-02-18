@@ -4,17 +4,37 @@
 1. اسم المشروع:
    - بالعربية: حساباتي أونلاين
    - بالإنجليزية: Hesabaty Online
-   - النطاق: hesabaty-online.com
+   - النطاق: hesabaty.online
 
 2. النطاقات الفرعية:
-   - الموقع الرئيسي: www.hesabaty-online.com
-   - منصة العملاء: app.hesabaty-online.com
-   - لوحة التحكم: admin.hesabaty-online.com
+   - الموقع الرئيسي: www.hesabaty.online
+   - منصة العملاء: app.hesabaty.online
+   - لوحة التحكم: admin.hesabaty.online
 
 3. البريد الإلكتروني:
-   - المعلومات العامة: info@hesabaty-online.com
-   - الدعم الفني: support@hesabaty-online.com
-   - المبيعات: sales@hesabaty-online.com
+   - المعلومات العامة: info@hesabaty.online
+   - الدعم الفني: support@hesabaty.online
+   - المبيعات: sales@hesabaty.online
+ - تم انشاء نطاق مدفوع على موقع porkbun :
+      - إضافة خدمة Static Hosting من Porkbun
+      - Support PIN : 159149
+      - Username    : pay2017
+      - Password    : Aa01015415601@@@@@
+- إعداد البريد الإلكتروني باستخدام Zoho Mail Business المجاني :
+      Admin Console ZOHO :
+        https://mailadmin.zoho.com/cpanel/home.do
+        - الاميلات :
+            admin@hesabaty.online
+            info@hesabaty.online
+            support@hesabaty.online
+            sales@hesabaty.online
+        - كلمة المرور : Aa01015415601@@@@@
+   - تم إضافة سجلات DNS الخاصة بالبريد في Porkbun
+   - تم التحقق من صحة إعدادات البريد
+   - تم اعداد سجلات DNS في موقع Porkbun
+   - الخطوه التاليه هي إعداد توقيع كل بريد على حدة
+   - ثم اختبار إرسال واستقبال البريد
+
 
 4. وصف المشروع:
    برنامج متكامل مصمم لتسهيل إدارة الحسابات والمخازن لأصحاب المحلات والمحاسبين، يوفر:
@@ -178,7 +198,7 @@
       - يتكون من:
         * اسم النطاق الرئيسي
         * معرف فريد للمحل (مشفر)
-        * مثال: https://domain.com/store/[معرف_المحل_المشفر]
+        * مثال: https://hesabaty.online/store/[معرف_المحل_المشفر]
       - يمكن إعادة إنشاء الرابط عند الطلب
       - صلاحية الرابط مرتبطة بصلاحية الترخيص
 
@@ -243,10 +263,10 @@
 ## خطوات التنفيذ التفصيلية
 1. إعداد النطاق والبريد الإلكتروني:
    أ. شراء وإعداد النطاق:
-      - شراء نطاق .com من Porkbun
+      - تم شراء نطاق hesabaty.online من Porkbun
       - إعداد سجلات DNS الأساسية
-      - تفعيل شهادة SSL المجانية
-      - تفعيل حماية Whois Privacy
+      - تفعيل شهادة SSL المجانية من Porkbun
+      - تفعيل حماية Whois Privacy المجانية
       - إنشاء النطاقات الفرعية:
         * www للموقع الرئيسي
         * app لمنصة العملاء
